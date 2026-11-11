@@ -10,7 +10,7 @@ This repository contains beginner-to-advanced Java lessons with explanations in 
 2. [Lesson 02 - Install JDK and Set Up Java](02-JDK-Setup/lesson.md)
 3. [Lesson 03 - Variables and data types](03-Variables/lesson.md)
 4. [Lesson 04 - Operators](04-Operators/lesson.md)
-5. Lesson 05 - Conditions
+5. [Lesson 05 - Conditions](05-Conditions/lesson.md)
 6. Lesson 06 - Loops
 7. Lesson 07 - Arrays
 8. Lesson 08 - Methods
