@@ -12,7 +12,7 @@ This repository contains beginner-to-advanced Java lessons with explanations in 
 4. [Lesson 04 - Operators](04-Operators/lesson.md)
 5. [Lesson 05 - Conditions](05-Conditions/lesson.md)
 6. [Lesson 06 - Loops](06-Loops/lesson.md)
-7. Lesson 07 - Arrays
+7. [Lesson 07 - Arrays](07-Arrays/lesson.md)
 8. Lesson 08 - Methods
 9. Object-Oriented Programming (OOP)
 10. Exception handling
