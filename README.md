@@ -7,7 +7,7 @@ This repository contains beginner-to-advanced Java lessons with explanations in 
 ## Course roadmap
 
 1. [Lesson 01 - Introduction to Java](01-Introduction/lesson.md)
-2. Lesson 02 - Installing the JDK and setting up the development environment
+2. [Lesson 02 - Install JDK and Set Up Java](02-JDK-Setup/lesson.md)
 3. Lesson 03 - Variables and data types
 4. Lesson 04 - Operators
 5. Lesson 05 - Conditions
