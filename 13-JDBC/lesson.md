@@ -1,33 +1,56 @@
 # មេរៀនទី ១៣៖ Database Programming ជាមួយ JDBC
 
-JDBC ជា API ស្តង់ដាររបស់ Java សម្រាប់ទាក់ទង relational database។ ត្រូវការ JDBC driver របស់ database ដែលប្រើ ហើយបន្ថែមវាទៅ classpath/build configuration។ API មួយ មិនមានន័យថា driver ឬ SQL dialect ទាំងអស់ដូចគ្នាទេ។
+## គោលបំណង
+យល់ពី JDBC driver, connection, PreparedStatement, ResultSet, transaction, resource cleanup និងការការពារ SQL injection/secret leak។
 
-## Connection និង PreparedStatement
+## ១. ផ្នែកដែលពាក់ព័ន្ធ
+JDBC ជា API ក្នុង JDK; database vendor ឬ driver provider ផ្តល់ JDBC driver ជាក់លាក់។ កម្មវិធីបង្កើត Connection តាម JDBC URL, បញ្ជូន SQL តាម Statement/PreparedStatement ហើយអាន ResultSet។ ត្រូវបន្ថែម driver dependency ទៅ build tool; URL និង SQL syntax ខុសតាម database។
+
+## ២. Query ដោយ PreparedStatement
 
 ~~~java
-String url = System.getenv("DB_URL");
-String user = System.getenv("DB_USER");
-String password = System.getenv("DB_PASSWORD");
-
 String sql = "SELECT id, name FROM students WHERE id = ?";
-try (var connection = java.sql.DriverManager.getConnection(url, user, password);
-     var statement = connection.prepareStatement(sql)) {
-    statement.setInt(1, 1);
-    try (var result = statement.executeQuery()) {
+try (Connection connection = DriverManager.getConnection(url, user, password);
+     PreparedStatement statement = connection.prepareStatement(sql)) {
+    statement.setInt(1, studentId);
+    try (ResultSet result = statement.executeQuery()) {
         while (result.next()) {
-            System.out.println(result.getInt("id") + " " + result.getString("name"));
+            long id = result.getLong("id");
+            String name = result.getString("name");
+            System.out.println(id + " " + name);
         }
     }
 }
 ~~~
 
-PreparedStatement បែងចែក SQL structure ពី parameter values ហើយជួយការពារការបញ្ចូល input ជា SQL code។ កុំបង្កើត query ដោយ concatenate user input។
+Placeholder ? សម្រាប់ value parameters មិនមែនឈ្មោះ table/column ឬ SQL keyword ទេ។ ប្រសិនបើត្រូវជ្រើស sort column ត្រូវប្រើ allowlist របស់កម្មវិធី មិនយក input ទៅ concatenate។
 
-## Transaction
-Transaction រួមបញ្ចូលការងារច្រើនឱ្យ commit ជាក្រុម ឬ rollback ពេលមានបញ្ហា។ JDBC connection មាន auto-commit តាម default ជាទូទៅ; ការបិទវា និងគ្រប់គ្រង commit/rollback ត្រូវមានការប្រុងប្រយ័ត្ន។
+## ៣. CRUD
+- SELECT ប្រើ executeQuery ហើយទទួល ResultSet។
+- INSERT/UPDATE/DELETE ប្រើ executeUpdate ដែលត្រឡប់ចំនួន rows ប៉ះពាល់។
+- ត្រួតពិនិត្យចំនួន rows និង constraint; កុំសន្មតថា update បានមួយ row ជានិច្ច។
 
-## Secrets និង Database
-កុំ hardcode password ក្នុង source ឬ commit វាទៅ GitHub។ ប្រើ environment/secret manager សម្រាប់ lab; production ត្រូវប្រើការគ្រប់គ្រង secret របស់ deployment។ កុំបង្ហាញ connection URL ដែលមាន credential ក្នុង log។
+## ៤. Transaction
+Transaction រួមបញ្ចូលការងារជាច្រើនឱ្យ commit ជាក្រុម។ ពេលមាន failure ត្រូវ rollback ដើម្បីជៀស partial state។
 
-## លំហាត់
-ធ្វើ [exercise.md](exercise.md)។ ព័ត៌មាន driver និង setup អាស្រ័យលើ database ដែលអ្នកជ្រើស។
+~~~java
+connection.setAutoCommit(false);
+try {
+    // run related prepared statements
+    connection.commit();
+} catch (SQLException exception) {
+    connection.rollback();
+    throw exception;
+}
+~~~
+
+ក្នុង application ពិត ការគ្រប់គ្រង transaction អាចធ្វើដោយ framework; កុំបើក transaction យូរពេក ព្រោះវាចាក់ lock និងកាន់ connection។ រៀន ACID និង isolation levels មុនរចនា concurrent updates។
+
+## ៥. SQL Injection និង Secret
+ការបញ្ចូល text ត្រង់ទៅ SQL អាចប្ដូរអត្ថន័យ query។ PreparedStatement ចង value ជា data។ កុំដាក់ DB password ក្នុង source, Git, README ឬ log។ ប្រើ env/secret manager ក្នុង lab/production តាម deployment; ផ្តល់ least-privilege database user និងបិទ DB port ដែលមិនត្រូវការចេញក្រៅ។
+
+## ៦. Resource និង connection pooling
+Connection, Statement, ResultSet ត្រូវបិទ។ try-with-resources គ្រប់គ្រងវា។ Server app ជាទូទៅប្រើ DataSource/connection pool ជំនួសការបើក connection ថ្មីសម្រាប់រាល់ request។ Pool size គួរត្រូវគ្នានឹង DB capacity និង request concurrency; pool ធំពេកអាចធ្វើឱ្យ DB overload។
+
+## ៧. លំហាត់
+ធ្វើ [exercise.md](exercise.md)។ មេរៀនបង្ហាញ API ស្តង់ដារ; ដើម្បី run ពិត ត្រូវបន្ថែម driver និង test database ផ្ទាល់ខ្លួន។
