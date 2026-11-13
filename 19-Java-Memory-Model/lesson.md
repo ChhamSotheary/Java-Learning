@@ -1,33 +1,45 @@
-# មេរៀនទី ១៩៖ Java Memory Model និង Visibility
+# មេរៀនទី ១៩៖ Java Memory Model និង Happens-before
 
-Java Memory Model (JMM) កំណត់ថា thread មួយអាចមើលឃើញការសរសេររបស់ thread មួយទៀតនៅពេលណា។ ការមាន shared variable មិនមានន័យថា updates ត្រូវបានមើលឃើញភ្លាមៗដោយ thread ទាំងអស់ទេ។
+## ១. ហេតុអ្វីត្រូវការ JMM?
+Thread ចែករំលែក heap objects ប៉ុន្តែ compiler និង processor អាចប្តូរលំដាប់ operation ដែលមិនប៉ះ observable behavior ក្នុង thread តែមួយ។ JMM កំណត់ថា behavior ណាដែលកម្មវិធី multi-thread អាចឃើញ។ កុំសន្មតថា source lines ត្រូវបានប្រតិបត្តិតាមលំដាប់ដូចគ្នាដោយ thread ទាំងអស់។
 
-## Race Condition
-បើ thread ច្រើនអាន/កែ shared state ដោយគ្មានការរៀបចំ តម្លៃចុងក្រោយអាចពឹងលើ timing។ សូម្បី count++ ក៏មិនមែនជា operation atomic មួយទេ; វាមាន read, add និង write។
+## ២. Data race
+Data race កើតពេល thread ពីរចូលប្រើ variable ដូចគ្នា concurrently, យ៉ាងហោចណាស់មួយសរសេរ, ហើយមិនមាន synchronization ដែលធានាលំដាប់។ កម្មវិធីអាចបង្ហាញ stale value ឬ lost update។
 
-## Happens-before
-synchronized unlock/lock ដូចគ្នា និង volatile write/read មានទំនាក់ទំនង happens-before តាមច្បាប់ JMM។ វាផ្តល់ visibility/order guarantees តែ volatile មិនធ្វើ compound operation ដូចជា count++ ឱ្យ atomic ទេ។
+count++ ត្រូវបានបំបែកជា read → add → write ដូច្នេះ volatile មិនធ្វើវាឱ្យ atomic ទេ។
+
+## ៣. Happens-before
+Happens-before ជាទំនាក់ទំនងដែលធានា visibility និង order។ ឧទាហរណ៍ unlock monitor happens-before lock បន្ទាប់លើ monitor ដូចគ្នា; write ទៅ volatile happens-before read បន្ទាប់ដែលមើលឃើញតម្លៃនោះ; Thread.start និង Thread.join ក៏មាន guarantees តាម spec។ បើគ្មាន happens-before ការអានអាចឃើញតម្លៃចាស់។
+
+## ៤. volatile flag
 
 ~~~java
-private volatile boolean running = true;
+class Worker {
+    private volatile boolean running = true;
 
-void stop() {
-    running = false;
-}
-
-void work() {
-    while (running) {
-        // do work
+    void stop() {
+        running = false;
     }
+
+    void work() {
+        while (running) {
+            doSmallUnitOfWork();
+        }
+    }
+
+    private void doSmallUnitOfWork() { }
 }
 ~~~
 
-សម្រាប់ counter ដែលត្រូវបន្ថែមជាន់គ្នា ប្រើ AtomicInteger ឬ lock ដែលសមស្រប។ Immutable objects និង message passing ជួយកាត់ shared mutable state។
+volatile សមស្របសម្រាប់ flag មួយនេះ ព្រោះ thread មួយសរសេរ ហើយមួយទៀតអាន។ វាមិនសមសម្រាប់ការធ្វើ invariant ច្រើន field ដែលត្រូវប្ដូរជាក្រុម។
 
-## Safe Publication
-ការបង្ហោះ reference ទៅ object មុនពេល initialize ចប់អាចឱ្យ thread ផ្សេងឃើញ state មិនពេញលេញ។ ប្រើ final fields, synchronized/volatile handoff, concurrent collection ឬ framework API ដែលធានា thread-safety។
+## ៥. Atomic និង synchronized
+ប្រើ AtomicInteger សម្រាប់ counter ឬ compare-and-set pattern; ប្រើ synchronized/Lock សម្រាប់ invariant ដែលពាក់ព័ន្ធ state ច្រើន។ Concurrent collections សម្រាប់ structure ដែលចែករំលែក។ ត្រូវចងចាំថា thread-safe method មួយមិនធ្វើ sequence នៃ calls ច្រើនឱ្យ atomic ដោយស្វ័យប្រវត្តិទេ។
 
-## លំហាត់
-1. ពន្យល់ហេតុអ្វី volatile int count មិនធ្វើ count++ ឱ្យ atomic។
-2. បង្កើត toy example សម្រាប់ visibility និងពន្យល់ថាហេតុអ្វី test ម្តងអាចមិនបង្ហាញ bug។
-3. ជ្រើស AtomicInteger, synchronized ឬ immutable design សម្រាប់ shared counter ហើយបញ្ជាក់មូលហេតុ។
+## ៦. Safe publication និង final fields
+បង្កើត object ឱ្យរួច មុនបង្ហោះ reference ទៅ thread ផ្សេង។ ប្រើ final fields, synchronized/volatile handoff ឬ concurrent queues។ កុំចេញ this ពី constructor មុន initialization ចប់ ព្រោះ thread ផ្សេងអាចឃើញ object មិនទាន់ពេញលេញ។
+
+## ៧. លំហាត់
+1. ពន្យល់ហេតុអ្វី volatile int មិនធ្វើ count++ ឱ្យ atomic។
+2. ជ្រើស happens-before mechanism សម្រាប់ worker thread ផ្ញើ result ទៅ main។
+3. បែងចែក visibility, atomicity និង ordering ដោយឧទាហរណ៍។
