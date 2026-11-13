@@ -1,31 +1,50 @@
 # មេរៀនទី ១៦៖ Modern Java — Enum, Record, Sealed Type និង Pattern Matching
 
-## Enum
-ប្រើ enum សម្រាប់ជម្រើសមានកំណត់ជាមុន ដូចជា status៖ NEW, PAID, CANCELLED។ វាល្អជាង String ចៃដន្យ ព្រោះ compiler អាចជួយរកកំហុស។
+ឧទាហរណ៍នៅទីនេះប្រើ syntax តាម JDK version។ Record និង sealed classes ជា feature មូលដ្ឋានក្នុង Java 17; pattern matching ក្នុង switch ជា feature final ក្នុង Java 21។ បញ្ជាក់ project source/target version មុនប្រើ។
 
-## Record
-Record ជា data carrier ដែលបង្កើត constructor, accessor, equals/hashCode និង toString សម្រាប់ components របស់វា។
+## ១. Enum សម្រាប់ជម្រើសមានកំណត់
 
 ~~~java
-record Point(int x, int y) {}
+enum OrderStatus {
+    NEW, PAID, SHIPPED, CANCELLED
+}
+~~~
 
-public class Main {
-    public static void main(String[] args) {
-        Point point = new Point(3, 4);
-        System.out.println(point.x());
+Enum មាន instances ថេរដែលបានកំណត់។ វាអាចមាន fields, constructor និង methods ផងដែរ។ ប្រើ enum ជំនួស String ដើម្បីទប់ typo និងឱ្យ switch ដឹងជម្រើសដែលគ្រប់គ្រងបាន។
+
+## ២. Record សម្រាប់ data carrier
+
+~~~java
+record Product(String name, int priceCents) {
+    Product {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("name ត្រូវមានតម្លៃ");
+        }
+        if (priceCents < 0) {
+            throw new IllegalArgumentException("price មិនអាចអវិជ្ជមាន");
+        }
     }
 }
 ~~~
 
-Record components ជា final references ប៉ុន្តែ object ដែល field យោងទៅមិនចាំបាច់ immutable ទាំងស្រុងទេ។ ត្រូវប្រុងប្រយ័ត្នជាមួយ mutable components។
+Record ផ្តល់ constructor, accessor methods, equals/hashCode និង toString តាម components។ Compact constructor អាច validate input។ Record មិនមែនជា immutable magic សម្រាប់ object graph ទាំងមូលទេ: reference field មិនអាចប្ដូរទៅ object ផ្សេង ប៉ុន្តែ mutable List ដែលវាយោងនៅតែអាចកែបាន។ ប្រើ List.copyOf ក្នុង constructor បើចង់ការពារ collection ពីការកែតាមក្រៅ។
 
-## Sealed Classes
-Sealed type កំណត់ថា class/interface ណាអាច extend ឬ implement វា។ វាជួយបង្ហាញចំនួន subtype ដែលអនុញ្ញាតនៅពេលរចនា domain model។
+## ៣. Sealed class/interface
+Sealed types បញ្ជាក់ subclasses ដែលអនុញ្ញាតតាម permits។ Subclass ត្រូវបន្ត sealed, non-sealed ឬ final។ វាសមស្របសម្រាប់ domain model ដែលមានករណីជាក់លាក់ ដូចជា PaymentResult = Success/Declined/Unavailable។
 
-## Pattern Matching
-Java ថ្មីបន្ថែម pattern matching ក្នុង instanceof និង switch ជាបន្តបន្ទាប់តាម release។ ពិនិត្យ JDK/version ដែល project គាំទ្រ មុនប្រើ syntax ថ្មី។
+## ៤. Pattern matching
+Pattern matching សម្រាប់ instanceof បញ្ចូល type check និង cast៖
 
-## លំហាត់
-1. បង្កើត enum OrderStatus។
-2. បង្កើត record Product(String name, int price) និង validate price មិនអវិជ្ជមានក្នុង compact constructor។
-3. ពន្យល់ភាពខុសគ្នារវាង immutable object និង final reference។
+~~~java
+if (value instanceof String text) {
+    System.out.println(text.length());
+}
+~~~
+
+ក្នុង Java 21 switch អាច pattern-match sealed hierarchy ហើយ compiler អាចពិនិត្យ exhaustiveness។ Pattern matching ជួយកាត់ cast និងធ្វើ branch ឱ្យមើលងាយ ប៉ុន្តែត្រូវគោរព null behavior និង JDK release។
+
+## ៥. កុំប្រើ feature ដោយគ្មានហេតុផល
+Record មិនសមជំនួស entity ដែលមាន lifecycle និង identity។ Enum មិនគួររក្សាទុក user-defined dynamic list។ Sealed hierarchy មិនសមបើ plugin ខាងក្រៅត្រូវបន្ថែម subtype។ ជ្រើសតាម domain និង compatibility។
+
+## ៦. លំហាត់
+ធ្វើ [exercise.md](exercise.md) និងបញ្ជាក់ version ត្រូវការរបស់កូដនីមួយៗ។
