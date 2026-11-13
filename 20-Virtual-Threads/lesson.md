@@ -1,6 +1,9 @@
 # មេរៀនទី ២០៖ Virtual Threads និង Structured Concurrency
 
-Virtual threads (Java 21+) ជា thread ស្រាលដែល Java runtime កំណត់លើ platform threads។ វាមានប្រយោជន៍សម្រាប់កម្មវិធីដែលមាន concurrent tasks ច្រើន និងភាគច្រើនរង់ចាំ I/O។ វាមិនធ្វើឱ្យ CPU-bound computation លឿនដោយស្វ័យប្រវត្តិទេ។
+## ១. Virtual thread ជាអ្វី?
+Virtual thread ជា thread ដែល Java runtime គ្រប់គ្រង ហើយអាច multiplex លើ platform threads។ វាត្រូវបានរចនាឱ្យបង្កើតបានច្រើនសម្រាប់ task ដែលភាគច្រើនរង់ចាំ I/O។ វាមិនបង្កើត CPU cores បន្ថែម ហើយមិនធ្វើឱ្យ CPU-bound loop លឿនដោយស្វ័យប្រវត្តិទេ។
+
+Virtual threads មាននៅ Java 21។ កូដឧទាហរណ៍មិន compile លើ JDK ចាស់ជាងនេះទេ។
 
 ~~~java
 public class Main {
@@ -13,11 +16,34 @@ public class Main {
 }
 ~~~
 
-កុំប្រើ thread pool តូចៗសម្រាប់ virtual threads ដោយគិតថាត្រូវកំណត់ចំនួនដូច platform threads; ជំនួសវិញកំណត់ resource ពិត ដូចជា database connections និង remote service concurrency។ កុំបង្កើត virtual thread មួយក្នុងមួយ CPU loop សម្រាប់ compute-heavy work។
+## ២. បង្កើត task ច្រើន
+ExecutorService.newVirtualThreadPerTaskExecutor() បង្កើត virtual thread មួយក្នុងមួយ task ហើយបិទ executor បន្ទាប់ពី task បញ្ចប់។ ប្រើ try-with-resources លើ JDK 21+។
 
-Structured concurrency ជួយកំណត់ lifecycle និង error handling របស់ subtasks ជាក្រុម ប៉ុន្តែ API និង status អាចប្រែប្រួលតាម JDK release។ ពិនិត្យ JEP និង documentation តាម version មុនប្រើ production។
+~~~java
+try (var executor = java.util.concurrent.Executors
+        .newVirtualThreadPerTaskExecutor()) {
+    for (int i = 0; i < 100; i++) {
+        int taskId = i;
+        executor.submit(() -> {
+            System.out.println("Task " + taskId);
+            return null;
+        });
+    }
+}
+~~~
 
-## លំហាត់
-1. រត់ virtual thread example លើ JDK 21+។
-2. ប្រៀបធៀប workload ដែលរង់ចាំ I/O ជាមួយ workload គណនា CPU។
-3. ពន្យល់ថា virtual threads មិនមានន័យថា resource របស់ database អាចគ្មានដែនកំណត់។
+កុំបង្កើត task រាប់លានក្នុង memory ដោយគ្មាន backpressure ឬ capacity planning។ Resource ពិតនៅតែមានកំណត់។
+
+## ៣. តើវាសមស្របពេលណា?
+សមស្របសម្រាប់ blocking I/O ដែលមាន concurrent request ច្រើន ហើយ code ងាយសរសេរជា sequential style។ មិនសមសម្រាប់ CPU-intensive parallel computation ដែលត្រូវការកំណត់ worker តាម CPU។ ក៏មិនជំនួស connection pool, rate limit ឬ database capacity ទេ។
+
+## ៤. Pinning និង blocking
+Virtual thread ត្រូវបាន mount លើ carrier platform thread។ ករណី blocking ខ្លះអាច pin carrier ឬបន្ថយ scalability អាស្រ័យលើ JDK/library version។ វាស់លើ JDK ដែល deploy ពិត ហើយពិនិត្យ JEP/version-specific docs; កុំប្រើ heuristic ចាស់ដោយគ្មានផ្ទៀងផ្ទាត់។
+
+## ៥. Structured concurrency
+គំនិត structured concurrency គឺកំណត់ child tasks ជាក្រុមដែល lifecycle, cancellation និង error propagation ត្រូវបានគ្រប់គ្រងជាមួយ parent។ API នេះអាចមាន status preview/ឬអភិវឌ្ឍតាម JDK release ដូច្នេះកុំយក syntax មួយទៅគ្រប់ version។ ចាប់ផ្តើមពី virtual threads ដែលជា stable feature ហើយបន្ទាប់មកពិនិត្យ JEP សម្រាប់ structured concurrency version ដែលអ្នកប្រើ។
+
+## ៦. លំហាត់
+1. រត់ example លើ JDK 21+។
+2. ប្រៀបធៀប 100 tasks ដែលចាំ I/O ជាមួយ 100 CPU loops។
+3. រាយ resource limits ដែលនៅតែត្រូវគ្រប់គ្រង ទោះប្រើ virtual threads ក៏ដោយ។
