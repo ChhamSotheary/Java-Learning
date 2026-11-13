@@ -1,30 +1,41 @@
 # មេរៀនទី ១៨៖ Concurrency ជាមួយ Thread និង ExecutorService
 
-Concurrency អនុញ្ញាតឱ្យមានការងារច្រើនកំពុងរង់ចាំ ឬដំណើរការជាន់គ្នា; parallelism មានន័យការដំណើរការពិតក្នុងពេលតែមួយលើ processor ច្រើន។ ការចែករំលែក mutable state អាចបង្ក race condition។
+## ១. Concurrency និង Parallelism
+Concurrency មានន័យថាការងារច្រើនកំពុងដំណើរការជាន់គ្នាតាមទស្សនៈកម្មវិធី; parallelism ជាការដំណើរការពិតក្នុងពេលតែមួយលើ processor ច្រើន។ Concurrency មានប្រយោជន៍សម្រាប់ I/O wait និងការឆ្លើយតប; parallelism អាចជួយ CPU work ប្រសិនបើបែងចែកបានល្អ។
 
-## ExecutorService
-ជាទូទៅប្រើ ExecutorService ជំនួសការបង្កើត thread ច្រើនដោយដៃ។ Pool គ្រប់គ្រងការប្រតិបត្តិ task និងចំនួន thread។
+## ២. Thread និង Runnable
+Thread ជាខ្សែការងារ។ ការបង្កើត thread មួយក្នុងមួយ task ដោយគ្មានដែនកំណត់អាចប្រើ memory និង OS resource ច្រើន។ កម្មវិធីទូទៅប្រើ ExecutorService ដើម្បីគ្រប់គ្រងចំនួន worker និង task queue។
 
 ~~~java
-import java.util.concurrent.*;
-
-public class Main {
-    public static void main(String[] args) throws Exception {
-        try (var executor = Executors.newFixedThreadPool(2)) {
-            Future<Integer> result = executor.submit(() -> 20 + 22);
-            System.out.println(result.get());
-        }
-    }
+ExecutorService executor = Executors.newFixedThreadPool(2);
+try {
+    Future<Integer> future = executor.submit(() -> 20 + 22);
+    System.out.println(future.get());
+} finally {
+    executor.shutdown();
 }
 ~~~
 
-ExecutorService AutoCloseable អាស្រ័យលើ JDK version; បើប្រើ JDK ដែលមិនគាំទ្រ try-with-resources សម្រាប់វា ត្រូវ shutdown និង awaitTermination តាម API របស់ version នោះ។ កុំសន្មតថា cancel task មានន័យថាវាឈប់ភ្លាមៗ; task ត្រូវគោរព interruption។
+shutdown មិនបង្ខំឱ្យឈប់ភ្លាមៗទេ; វាឈប់ទទួល task ថ្មី ហើយបញ្ចប់ task ដែលបាន submit។ បើចាំបាច់បិទក្នុងពេលកំណត់ ប្រើ awaitTermination ហើយមានផែនការសម្រាប់ shutdownNow/interruption។
 
-## Synchronization
-synchronized និង Lock អាចការពារ critical section ប៉ុន្តែ lock ទូលំទូលាយអាចបន្ថយ throughput ឬបង្ក deadlock។ Concurrent collections និង atomic classes ជាជម្រើសសម្រាប់ use case ជាក់លាក់។
+## ៣. Race condition និង atomicity
+count++ មិនមែន operation atomic មួយទេ៖ វាអាន, គណនា, សរសេរ។ Thread ពីរអាចអានតម្លៃដូចគ្នា ហើយសរសេរលទ្ធផលជាន់គ្នា។ ការប្រើ synchronized ឬ AtomicInteger ជួយការពារករណីសាមញ្ញ។
 
-## លំហាត់
-1. បង្កើត executor មាន worker ចំនួនកំណត់ ហើយ submit task ច្រើន។
-2. បង្កើត race condition លើ counter ក្នុង toy program ហើយពិពណ៌នាហេតុអ្វីកើត។
-3. បន្ថែម synchronization ឬ AtomicInteger ហើយប្រៀបធៀប។
-4. ពន្យល់ graceful shutdown និង interruption។
+~~~java
+AtomicInteger counter = new AtomicInteger();
+counter.incrementAndGet();
+~~~
+
+AtomicInteger សមសម្រាប់ atomic counter; វាមិនធ្វើឱ្យ transaction ដែលកែ fields ច្រើន atomic ទេ។
+
+## ៤. Visibility និង synchronization
+synchronized ផ្តល់ mutual exclusion និង visibility នៅពេលចូល/ចេញ monitor ដូចគ្នា។ volatile ផ្តល់ visibility/order សម្រាប់ variable មួយ ប៉ុន្តែមិនធានា compound update។ Immutable data និង message passing ជួយកាត់ shared mutable state។
+
+## ៥. Deadlock និង starvation
+Deadlock អាចកើតពេល thread កាន់ lock មួយ ហើយរង់ចាំ lock មួយទៀត ខណៈ thread មួយទៀតធ្វើបញ្ច្រាស។ ប្រើ lock ordering ថេរ, កុំកាន់ lock ពេលហៅ network/user code និងរក្សា critical section ខ្លី។ Starvation កើតពេល thread មួយមិនទទួលឱកាសដំណើរការគ្រប់គ្រាន់។
+
+## ៦. Interruption និង cancellation
+Interruption ជាសញ្ញាសហការ។ Task ត្រូវពិនិត្យ interrupt status ឬបញ្ជូន InterruptedException ឡើង; កុំចាប់ហើយលុបសញ្ញានេះ។ Future.cancel(true) ព្យាយាម interrupt មិនធានាថា code ឈប់ភ្លាមៗទេ។
+
+## ៧. លំហាត់
+ធ្វើ [exercise.md](exercise.md)។ បង្កើត counter test តូចដែលអាចបង្ហាញ race បាន ហើយកែវាដោយ AtomicInteger ឬ synchronized។
