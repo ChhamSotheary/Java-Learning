@@ -22,7 +22,7 @@ public class GreetingService {
 Clock អាចផ្តល់ជា bean ដោយ @Bean ក្នុង @Configuration។ Constructor injection ធ្វើឱ្យ required dependency មើលឃើញ និង field អាច final បាន។ សម្រាប់ bean មាន constructor តែមួយ Spring ជាទូទៅអាចប្រើវាដោយមិនចាំបាច់ @Autowired។
 
 ## Bean registration
-@ Component, @Service, @Repository, @Controller/@RestController សម្គាល់ class សម្រាប់ component scanning។ @Bean ប្រើក្នុង @Configuration ដើម្បីបង្កើត object ពី library ឬកំណត់ object ដែលមិនអាច annotate class ផ្ទាល់។ Stereotype annotations ស្រដៀងគ្នាសម្រាប់ registration តែបញ្ជាក់តួនាទីឱ្យអ្នកអាន។
+@Component, @Service, @Repository, @Controller/@RestController សម្គាល់ class សម្រាប់ component scanning។ @Bean ប្រើក្នុង @Configuration ដើម្បីបង្កើត object ពី library ឬកំណត់ object ដែលមិនអាច annotate class ផ្ទាល់។ Stereotype annotations ស្រដៀងគ្នាសម្រាប់ registration តែបញ្ជាក់តួនាទីឱ្យអ្នកអាន។
 
 ## Scope និង lifecycle
 Singleton ជា scope default: container ផ្តល់ instance មួយក្នុង ApplicationContext មួយ។ Singleton មិនមានន័យថា class មាន static fields ទេ។ Bean singleton គួរតែ stateless ឬ thread-safe ព្រោះ request ច្រើនអាចប្រើវាជាន់គ្នា។ Prototype/request/session scopes មាន use case ផ្សេង និងត្រូវយល់ lifecycle មុនប្រើ។
